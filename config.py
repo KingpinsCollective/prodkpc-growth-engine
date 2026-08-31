@@ -32,6 +32,11 @@ def _get(key, default=""):
 class Config:
     youtube_api_key: str = field(default_factory=lambda: _get("YOUTUBE_API_KEY"))
     youtube_channel_id: str = field(default_factory=lambda: _get("YOUTUBE_CHANNEL_ID"))
+    # --- YouTube Analytics (OAuth — owner-only momentum data) ---
+    yt_oauth_client_id: str = field(default_factory=lambda: _get("YT_OAUTH_CLIENT_ID"))
+    yt_oauth_client_secret: str = field(default_factory=lambda: _get("YT_OAUTH_CLIENT_SECRET"))
+    yt_oauth_refresh_token: str = field(default_factory=lambda: _get("YT_OAUTH_REFRESH_TOKEN"))
+
     ig_access_token: str = field(default_factory=lambda: _get("IG_ACCESS_TOKEN"))
     ig_user_id: str = field(default_factory=lambda: _get("IG_USER_ID"))
     beatstars_url: str = field(default_factory=lambda: _get("BEATSTARS_URL", "https://beatstars.com/prodkpc"))

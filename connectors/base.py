@@ -28,10 +28,12 @@ class Connector(ABC):
 def registry(config):
     """All known connectors. Import here to avoid circular imports."""
     from .youtube import YouTubeConnector
+    from .youtube_analytics import YouTubeAnalyticsConnector
     from .instagram import InstagramConnector
     from .beatstars import BeatStarsConnector
     return [
         YouTubeConnector(config),
+        YouTubeAnalyticsConnector(config),
         InstagramConnector(config),
         BeatStarsConnector(config),
     ]

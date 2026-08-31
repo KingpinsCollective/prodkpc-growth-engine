@@ -55,6 +55,20 @@ def init_db(db_path):
             beat_title TEXT, plays INTEGER, downloads INTEGER,
             sales INTEGER, revenue REAL, captured_at TEXT
         );
+        -- YouTube Analytics API (OAuth). Real momentum, not lifetime totals.
+        CREATE TABLE IF NOT EXISTS yt_daily (
+            day TEXT PRIMARY KEY,
+            views INTEGER, minutes_watched INTEGER,
+            subs_gained INTEGER, subs_lost INTEGER, updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS yt_video_analytics (
+            video_id TEXT PRIMARY KEY,
+            views INTEGER, subs_gained INTEGER, minutes_watched INTEGER,
+            avg_view_sec INTEGER, period TEXT, updated_at TEXT
+        );
+        CREATE TABLE IF NOT EXISTS yt_traffic (
+            source TEXT, views INTEGER, period TEXT, captured_at TEXT
+        );
         """)
 
 
@@ -154,3 +168,56 @@ def beatstars(db_path):
     if not df.empty:
         df["captured_at"] = pd.to_datetime(df["captured_at"])
     return df
+
+
+# ---------- YouTube Analytics writes ----------
+def upsert_yt_daily(db_path, day, views, minutes, gained, lost):
+    with _conn(db_path) as c:
+        c.execute(
+            """INSERT INTO yt_daily(day,views,minutes_watched,subs_gained,subs_lost,updated_at)
+               VALUES(?,?,?,?,?,?)
+               ON CONFLICT(day) DO UPDATE SET
+                 views=excluded.views, minutes_watched=excluded.minutes_watched,
+                 subs_gained=excluded.subs_gained, subs_lost=excluded.subs_lost,
+                 updated_at=excluded.updated_at""",
+            (day, views, minutes, gained, lost, _now()),
+        )
+
+
+def upsert_yt_video_analytics(db_path, video_id, views, gained, minutes, avg_sec, period):
+    with _conn(db_path) as c:
+        c.execute(
+            """INSERT INTO yt_video_analytics(video_id,views,subs_gained,minutes_watched,avg_view_sec,period,updated_at)
+               VALUES(?,?,?,?,?,?,?)
+               ON CONFLICT(video_id) DO UPDATE SET
+                 views=excluded.views, subs_gained=excluded.subs_gained,
+                 minutes_watched=excluded.minutes_watched, avg_view_sec=excluded.avg_view_sec,
+                 period=excluded.period, updated_at=excluded.updated_at""",
+            (video_id, views, gained, minutes, avg_sec, period, _now()),
+        )
+
+
+def replace_yt_traffic(db_path, rows, period):
+    """rows: list of (source, views). Replaces the traffic snapshot for this period."""
+    with _conn(db_path) as c:
+        c.execute("DELETE FROM yt_traffic WHERE period=?", (period,))
+        c.executemany(
+            "INSERT INTO yt_traffic(source,views,period,captured_at) VALUES(?,?,?,?)",
+            [(s, v, period, _now()) for s, v in rows],
+        )
+
+
+# ---------- YouTube Analytics reads ----------
+def yt_daily(db_path):
+    df = _df(db_path, "SELECT * FROM yt_daily ORDER BY day")
+    if not df.empty:
+        df["day"] = pd.to_datetime(df["day"])
+    return df
+
+
+def yt_video_analytics(db_path):
+    return _df(db_path, "SELECT * FROM yt_video_analytics")
+
+
+def yt_traffic(db_path):
+    return _df(db_path, "SELECT source, views FROM yt_traffic ORDER BY views DESC")

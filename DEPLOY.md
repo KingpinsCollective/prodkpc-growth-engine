@@ -42,3 +42,54 @@ The free setup commits a SQLite file daily — perfect for the YouTube/IG number
 Manual BeatStars entries typed into the live app won't survive a redeploy on the
 free host; when you want those durable, swap SQLite for a free Postgres
 (Neon/Supabase) — only `data/store.py` changes.
+
+---
+
+# Adding the YouTube Analytics layer (owner-only momentum)
+
+This unlocks subscribers-gained-per-video, daily momentum, and traffic sources —
+the "what's converting right now" data. It uses OAuth, so there's a one-time
+authorization. Do it once; the daily collector runs headless forever after.
+
+## A. Create OAuth credentials (Google Cloud)
+1. console.cloud.google.com → your existing project → **APIs & Services → Enable APIs**
+   → enable **"YouTube Analytics API"** (separate from the Data API).
+2. **APIs & Services → OAuth consent screen**:
+   - User type **External** → fill the required app name + your email.
+   - **Add scope** `https://www.googleapis.com/auth/yt-analytics.readonly`.
+   - **IMPORTANT — Publishing status: click "Publish app" / set to "In production."**
+     In "Testing" mode, refresh tokens expire after 7 days and your collector
+     would silently die in a week. Production keeps the token alive. You'll see an
+     "unverified app" warning later — that's expected for a personal app; you click
+     through it (it's your own data).
+3. **APIs & Services → Credentials → Create credentials → OAuth client ID**:
+   - For the no-code Playground route (recommended): type **Web application**,
+     and under *Authorized redirect URIs* add
+     `https://developers.google.com/oauthplayground`.
+   - Save. Copy the **Client ID** and **Client secret**.
+
+## B. Get a refresh token — no-code route (OAuth Playground)
+1. Go to **developers.google.com/oauthplayground**.
+2. Top-right **gear (⚙)** → check **"Use your own OAuth credentials"** → paste your
+   Client ID and Client secret.
+3. Left panel: in the "Input your own scopes" box, paste
+   `https://www.googleapis.com/auth/yt-analytics.readonly` → **Authorize APIs**.
+4. Sign in with the Google account that owns the channel → click through the
+   "unverified app" warning (Advanced → Go to … ).
+5. Click **"Exchange authorization code for tokens."** Copy the **Refresh token**.
+
+(Alternative local route: `python auth_youtube.py client_secret.json` — see that file.)
+
+## C. Add three GitHub secrets
+Repo → **Settings → Secrets and variables → Actions → New repository secret**:
+- `YT_OAUTH_CLIENT_ID`
+- `YT_OAUTH_CLIENT_SECRET`
+- `YT_OAUTH_REFRESH_TOKEN`
+
+Add the same three in **Streamlit → app Settings → Secrets** (TOML format) if you
+want the Momentum page to work between daily runs.
+
+## D. Run it
+Repo **Actions → Daily collect → Run workflow.** In the "Collect snapshots" step
+you want: `[OK ] YouTube Analytics  daily=30d · videos=25 · traffic=…`.
+Then open the app → **Momentum** page.

@@ -4,3 +4,5 @@ numpy>=1.24
 google-api-python-client>=2.100
 requests>=2.31
 python-dotenv>=1.0
+google-auth>=2.20
+google-auth-oauthlib>=1.0
