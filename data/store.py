@@ -69,6 +69,13 @@ def init_db(db_path):
         CREATE TABLE IF NOT EXISTS yt_traffic (
             source TEXT, views INTEGER, period TEXT, captured_at TEXT
         );
+        -- Releases: a finished video the user made + prepped through the app.
+        CREATE TABLE IF NOT EXISTS releases (
+            id INTEGER PRIMARY KEY,
+            title TEXT, artist TEXT, bpm TEXT, song_key TEXT,
+            filename TEXT, duration_sec INTEGER,
+            status TEXT, created_at TEXT
+        );
         """)
 
 
@@ -221,3 +228,21 @@ def yt_video_analytics(db_path):
 
 def yt_traffic(db_path):
     return _df(db_path, "SELECT source, views FROM yt_traffic ORDER BY views DESC")
+
+
+# ---------- Releases (videos prepped through the app) ----------
+def add_release(db_path, title, artist="", bpm="", song_key="", filename="",
+                duration_sec=0, status="prepped"):
+    with _conn(db_path) as c:
+        c.execute(
+            "INSERT INTO releases(title,artist,bpm,song_key,filename,duration_sec,status,created_at)"
+            " VALUES(?,?,?,?,?,?,?,?)",
+            (title, artist, bpm, song_key, filename, duration_sec, status, _now()),
+        )
+
+
+def releases(db_path):
+    df = _df(db_path, "SELECT * FROM releases ORDER BY created_at")
+    if not df.empty:
+        df["created_at"] = pd.to_datetime(df["created_at"])
+    return df
