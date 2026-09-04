@@ -93,3 +93,22 @@ want the Momentum page to work between daily runs.
 Repo **Actions → Daily collect → Run workflow.** In the "Collect snapshots" step
 you want: `[OK ] YouTube Analytics  daily=30d · videos=25 · traffic=…`.
 Then open the app → **Momentum** page.
+
+---
+
+# Video storage (Cloudflare R2)
+
+The Upload page stores finished videos in an R2 bucket and records the public URL
+(needed later for Instagram publishing). Add these to **Streamlit → app Settings →
+Secrets** (TOML format) — R2 is used by the interactive app, not the daily collector:
+
+```
+R2_ACCESS_KEY_ID = "your-access-key-id"
+R2_SECRET_ACCESS_KEY = "your-secret-access-key"
+R2_ENDPOINT = "https://<accountid>.r2.cloudflarestorage.com"
+R2_BUCKET = "prodkpc-videos"
+R2_PUBLIC_BASE = "https://pub-95e446d1e0e34fabab097243229d313d.r2.dev"
+```
+
+IMPORTANT: R2_ENDPOINT is the **account-level** endpoint with NO bucket on the end
+(no `/prodkpc-videos`). boto3 adds the bucket itself.

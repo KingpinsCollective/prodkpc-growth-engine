@@ -40,6 +40,13 @@ class Config:
     ig_access_token: str = field(default_factory=lambda: _get("IG_ACCESS_TOKEN"))
     ig_user_id: str = field(default_factory=lambda: _get("IG_USER_ID"))
     beatstars_url: str = field(default_factory=lambda: _get("BEATSTARS_URL", "https://beatstars.com/prodkpc"))
+
+    # --- Cloudflare R2 (video storage; S3-compatible) ---
+    r2_access_key_id: str = field(default_factory=lambda: _get("R2_ACCESS_KEY_ID"))
+    r2_secret_access_key: str = field(default_factory=lambda: _get("R2_SECRET_ACCESS_KEY"))
+    r2_endpoint: str = field(default_factory=lambda: _get("R2_ENDPOINT"))
+    r2_bucket: str = field(default_factory=lambda: _get("R2_BUCKET", "prodkpc-videos"))
+    r2_public_base: str = field(default_factory=lambda: _get("R2_PUBLIC_BASE"))
     db_path: str = field(default_factory=lambda: _get("DB_PATH") or os.path.join(os.path.dirname(__file__), "data", "growth.db"))
 
 

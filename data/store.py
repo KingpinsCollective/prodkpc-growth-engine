@@ -73,7 +73,7 @@ def init_db(db_path):
         CREATE TABLE IF NOT EXISTS releases (
             id INTEGER PRIMARY KEY,
             title TEXT, artist TEXT, bpm TEXT, song_key TEXT,
-            filename TEXT, duration_sec INTEGER,
+            filename TEXT, duration_sec INTEGER, video_url TEXT,
             status TEXT, created_at TEXT
         );
         """)
@@ -232,12 +232,12 @@ def yt_traffic(db_path):
 
 # ---------- Releases (videos prepped through the app) ----------
 def add_release(db_path, title, artist="", bpm="", song_key="", filename="",
-                duration_sec=0, status="prepped"):
+                duration_sec=0, video_url="", status="prepped"):
     with _conn(db_path) as c:
         c.execute(
-            "INSERT INTO releases(title,artist,bpm,song_key,filename,duration_sec,status,created_at)"
-            " VALUES(?,?,?,?,?,?,?,?)",
-            (title, artist, bpm, song_key, filename, duration_sec, status, _now()),
+            "INSERT INTO releases(title,artist,bpm,song_key,filename,duration_sec,video_url,status,created_at)"
+            " VALUES(?,?,?,?,?,?,?,?,?)",
+            (title, artist, bpm, song_key, filename, duration_sec, video_url, status, _now()),
         )
 
 
