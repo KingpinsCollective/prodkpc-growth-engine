@@ -48,7 +48,6 @@ class Config:
     r2_bucket: str = field(default_factory=lambda: _get("R2_BUCKET", "prodkpc-videos"))
     r2_public_base: str = field(default_factory=lambda: _get("R2_PUBLIC_BASE"))
     db_path: str = field(default_factory=lambda: _get("DB_PATH") or os.path.join(os.path.dirname(__file__), "data", "growth.db"))
-    database_url: str = field(default_factory=lambda: _get("DATABASE_URL"))
 
 
 CONFIG = Config()

@@ -2,23 +2,28 @@ import re
 import streamlit as st
 from ui_common import page_setup, eyebrow
 from config import CONFIG
-from data import store, r2
+from data import db, r2
 
 page_setup("Upload")
+db.init(CONFIG)
 
 st.title("Upload")
 eyebrow("Drop a finished video → store it → prep the release")
 
 r2_on = r2.configured(CONFIG)
-if not r2_on:
-    st.info("Video storage (Cloudflare R2) isn't configured yet — add the R2 secrets "
-            "and the video will be stored with a public URL. For now you can still log releases.")
+pg_on = db.pg_enabled(CONFIG)
+
+cols = st.columns(2)
+cols[0].caption(("🟢 " if r2_on else "⚪ ") + f"Video storage: {'R2' if r2_on else 'not set'}")
+cols[1].caption(("🟢 " if pg_on else "⚪ ") + f"Release DB: {db.backend_name(CONFIG)}")
+if not pg_on:
+    st.info("Releases are saving to temporary storage and will vanish on redeploy. "
+            "Add DATABASE_URL (Neon) to make them permanent.")
 
 st.markdown("Make your video your way, then log it as a **release**. "
             "Grab the exact BPM + key from Tunebat and paste them in.")
 
-video = st.file_uploader("Finished video (mp4 / mov / webm)",
-                         type=["mp4", "mov", "webm", "m4v"])
+video = st.file_uploader("Finished video (mp4 / mov / webm)", type=["mp4", "mov", "webm", "m4v"])
 if video is not None:
     st.video(video)
 
@@ -46,14 +51,31 @@ if st.button("Save release", type="primary", disabled=not title):
             st.success(f"Stored video → {video_url}")
         else:
             st.warning(f"Video storage failed ({res.get('error','')}). Saved the release without it.")
-    store.add_release(CONFIG.db_path, title=title, bpm=bpm, song_key=song_key,
-                      filename=(video.name if video else ""), video_url=video_url)
+    db.add_release(CONFIG, title=title, bpm=bpm, song_key=song_key,
+                   filename=(video.name if video else ""), video_url=video_url)
     st.success(f"Saved release: {title}. Next: generate its metadata.")
+    st.rerun()
 
-rel = store.releases(CONFIG.db_path)
+# ---- Editable, persistent release list ----
+rel = db.list_releases(CONFIG)
 if not rel.empty:
-    st.subheader("Recent releases")
-    show = rel.rename(columns={"song_key": "key"})
-    cols = [c for c in ["title", "bpm", "key", "video_url", "status", "created_at"] if c in show.columns]
-    st.dataframe(show[cols].tail(10).iloc[::-1], use_container_width=True, hide_index=True,
-                 column_config={"video_url": st.column_config.LinkColumn("video")})
+    st.subheader("Releases")
+    st.caption("Edit a title, BPM, or key any time — then Save, or Delete to remove.")
+    for _, row in rel.iterrows():
+        rid = int(row["id"])
+        head = f'{row["title"]}  ·  {row.get("bpm") or "—"} BPM  ·  {row.get("song_key") or "—"}'
+        with st.expander(head):
+            e1, e2, e3 = st.columns([3, 1, 1])
+            nt = e1.text_input("Title", value=row["title"] or "", key=f"t{rid}")
+            nb = e2.text_input("BPM", value=row.get("bpm") or "", key=f"b{rid}")
+            nk = e3.text_input("Key", value=row.get("song_key") or "", key=f"k{rid}")
+            if row.get("video_url"):
+                st.markdown(f"[▶ stored video]({row['video_url']})")
+            s, d = st.columns([1, 1])
+            if s.button("Save changes", key=f"s{rid}"):
+                db.update_release(CONFIG, rid, title=nt, bpm=nb, song_key=nk)
+                st.success("Updated.")
+                st.rerun()
+            if d.button("🗑 Delete", key=f"d{rid}"):
+                db.delete_release(CONFIG, rid)
+                st.rerun()
