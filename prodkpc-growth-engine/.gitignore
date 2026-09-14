@@ -1,0 +1,11 @@
+# secrets — never commit these
+.env
+.streamlit/secrets.toml
+
+# python junk
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# NOTE: data/growth.db is intentionally NOT ignored — the daily job commits it
